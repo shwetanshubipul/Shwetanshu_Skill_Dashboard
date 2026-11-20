@@ -280,39 +280,166 @@ function renderDomainFilter() {
     ).join("");
 }
 
-function renderSkills() {
-  const query=document.getElementById("search").value.toLowerCase();
-  const domain=document.getElementById("domainFilter").value;
 
-  const filtered=allSkills().filter(s=>
-    (!domain||s.domainId===domain) &&
-    (s.name+" "+s.domain+" "+s.priority).toLowerCase().includes(query)
-  );
+function renderSkills() {
+
+  const query = document.getElementById("search")
+    .value.toLowerCase().trim();
+
+  const selectedDomain =
+    document.getElementById("domainFilter").value;
+
+  const priorityClass = {
+    Essential: "priority-essential",
+    High: "priority-high",
+    Advanced: "priority-advanced",
+    Optional: "priority-optional"
+  };
+
+  const groups = config.domains
+    .filter(d => !selectedDomain || d.id === selectedDomain)
+    .map(d => {
+
+      const filteredSkills = d.skills.filter(s =>
+        (s.name + " " + d.name + " " + (s.priority || ""))
+          .toLowerCase().includes(query)
+      );
+
+      return {
+        ...d,
+        filteredSkills
+      };
+
+    })
+    .filter(d => d.filteredSkills.length > 0);
+
+  if (!groups.length) {
+    document.getElementById("skillList").innerHTML =
+      '<div class="card muted">No matching competencies found.</div>';
+    return;
+  }
 
   document.getElementById("skillList").innerHTML =
-    filtered.length ? filtered.map(s=>{
-      const val=state.ratings[s.key]||"";
+    groups.map((d, index) => {
+
+      const ratedCount = d.skills.filter(s =>
+        Number(state.ratings[d.id + "::" + s.id]) > 0
+      ).length;
+
+      const pct = d.skills.length
+        ? Math.round(ratedCount / d.skills.length * 100)
+        : 0;
+
+      const isOpen = query || index === 0 ? "open" : "";
+
       return `
-      <div class="card">
-        <div class="row">
-          <strong>${escapeHTML(s.name)}</strong>
-          <span class="tag">${escapeHTML(s.priority||"Optional")}</span>
-        </div>
-        <p class="small muted">${escapeHTML(s.domain)}</p>
-        <div class="skill-controls">
-          <select onchange="setRating('${escapeHTML(s.key)}',this.value)">
-            <option value="">Not assessed</option>
-            ${[1,2,3,4,5].map(n=>
-              `<option value="${n}" ${val==n?"selected":""}>
-              ${n} - ${["","Awareness","Theoretical","Hands-on","Advanced","Expert"][n]}
-              </option>`
-            ).join("")}
-          </select>
-          <span class="small muted">${val?"Level "+val:"Awaiting assessment"}</span>
-        </div>
-      </div>`;
-    }).join("")
-    :'<div class="card muted">No matching skills found.</div>';
+        <details class="skill-group" ${isOpen}>
+
+          <summary>
+
+            <div class="row">
+
+              <div style="flex:1;min-width:0">
+
+                <div class="group-title">
+                  ${escapeHTML(d.name)}
+                </div>
+
+                <div class="small muted">
+                  ${escapeHTML(d.description || "")}
+                </div>
+
+              </div>
+
+              <span class="tag">
+                ${ratedCount} / ${d.skills.length} assessed
+              </span>
+
+            </div>
+
+            <div style="margin-top:13px" class="bar">
+              <span style="width:${pct}%"></span>
+            </div>
+
+            <div class="small muted" style="margin-top:6px">
+              ${pct}% competency assessment completed
+            </div>
+
+          </summary>
+
+          <div class="group-content">
+
+            ${d.filteredSkills.map(s => {
+
+              const key = d.id + "::" + s.id;
+              const val = state.ratings[key] || "";
+              const priority = s.priority || "Optional";
+
+              return `
+
+                <div class="skill-row">
+
+                  <div class="skill-info">
+
+                    <div class="skill-name">
+                      ${escapeHTML(s.name)}
+                    </div>
+
+                    <div class="skill-meta">
+                      <span class="${priorityClass[priority] || "priority-optional"}">
+                        ${escapeHTML(priority)}
+                      </span>
+                      · Proficiency assessment
+                    </div>
+
+                  </div>
+
+                  <div class="skill-controls">
+
+                    <select
+                      aria-label="Rate ${escapeHTML(s.name)}"
+                      onchange="setRating('${escapeHTML(key)}',this.value)">
+
+                      <option value="">Not assessed</option>
+
+                      <option value="1" ${val == 1 ? "selected" : ""}>
+                        1 · Awareness
+                      </option>
+
+                      <option value="2" ${val == 2 ? "selected" : ""}>
+                        2 · Theoretical
+                      </option>
+
+                      <option value="3" ${val == 3 ? "selected" : ""}>
+                        3 · Hands-on
+                      </option>
+
+                      <option value="4" ${val == 4 ? "selected" : ""}>
+                        4 · Advanced
+                      </option>
+
+                      <option value="5" ${val == 5 ? "selected" : ""}>
+                        5 · Expert
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                </div>
+
+              `;
+
+            }).join("")}
+
+          </div>
+
+        </details>
+
+      `;
+
+    }).join("");
+
 }
 
 function setRating(key,value) {
