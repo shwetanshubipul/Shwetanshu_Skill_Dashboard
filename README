@@ -1,0 +1,61 @@
+D2M Engineering Skills Dashboard
+
+An interactive skills and competency dashboard for Design-to-Mask (D2M), Mask Data Preparation (MDP), OPC, computational lithography and semiconductor manufacturing engineering.
+
+Overview
+
+This project provides a structured framework for tracking technical competencies, engineering tools, manufacturing workflows and professional development.
+
+Technical Domains
+Design Database & Layout Integration
+Mask Data Preparation & Fracturing
+DFM, DRC, MRC & Verification
+OPC & Computational Lithography
+Mask Manufacturing & Metrology
+EDA Software & Platforms
+Programming & Automation
+Tape-out & Engineering Operations
+Advanced Mask Technologies
+HPC, Data Infrastructure & Analytics
+Features
+Interactive technical skills matrix
+Individual skill proficiency ratings
+EDA tools competency tracking
+Design-to-Mask workflow visualization
+Career development roadmap
+Engineering project documentation
+JSON backup and restore
+Technology Stack
+HTML5
+CSS3
+JavaScript
+JSON configuration
+Local Installation
+
+Clone the repository:
+
+bash
+git clone https://github.com/YOUR-USERNAME/d2m-skills-dashboard.git
+
+
+Open the project directory and run:
+
+bash
+python -m http.server 8000
+
+
+Visit http://localhost:8000.
+
+Customization
+
+Edit skills.js to add, remove or modify technical domains, competencies, EDA tools and workflow stages.
+
+No changes to the dashboard's HTML are required for normal skill-library updates.
+
+Deployment
+
+Hosted using GitHub Pages.
+
+Disclaimer
+
+This is an independent engineering competency and professional development project. It is not an official assessment or endorsement by any semiconductor foundry or EDA vendor.
