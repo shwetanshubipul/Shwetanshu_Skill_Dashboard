@@ -1,0 +1,488 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2M Engineering Skills Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="skills.js"></script>
+</head>
+
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="brand">D2M <span>ENGINEERING</span></div>
+  <p>MASK DATA PREPARATION PORTFOLIO</p>
+  <hr style="border-color:#293d54">
+
+  <nav id="navigation">
+    <button class="nav active" data-page="overview">◈ Overview</button>
+    <button class="nav" data-page="skills">▦ Skills Matrix</button>
+    <button class="nav" data-page="tools">⚙ EDA Tools</button>
+    <button class="nav" data-page="workflow">⇢ MDP Workflow</button>
+    <button class="nav" data-page="career">↗ Career Roadmap</button>
+    <button class="nav" data-page="projects">▤ Projects</button>
+  </nav>
+
+  <hr style="border-color:#293d54">
+  <button class="nav" onclick="exportData()">↓ Export JSON</button>
+  <button class="nav" onclick="document.getElementById('importFile').click()">↑ Import JSON</button>
+  <input type="file" id="importFile" accept=".json" hidden>
+</aside>
+
+<main class="main">
+
+<header class="header">
+  <div>
+    <h1 id="title">Engineering Overview</h1>
+    <div class="muted small" id="subtitle"></div>
+  </div>
+  <div class="actions">
+    <span class="tag">LOCAL PORTFOLIO</span>
+    <button class="btn" onclick="exportData()">Backup</button>
+  </div>
+</header>
+
+<section class="page active" id="overview">
+  <div class="grid">
+    <div class="card">
+      <div class="metric" id="assessed">0</div>
+      <div class="metric-label">Skills assessed</div>
+    </div>
+    <div class="card">
+      <div class="metric" id="average">0.0</div>
+      <div class="metric-label">Average proficiency</div>
+    </div>
+    <div class="card">
+      <div class="metric" id="total">0</div>
+      <div class="metric-label">Total competencies</div>
+    </div>
+    <div class="card">
+      <div class="metric" id="expert">0</div>
+      <div class="metric-label">Expert-level skills</div>
+    </div>
+  </div>
+
+  <h2>Technical Competency Domains</h2>
+  <div class="grid two" id="domains"></div>
+</section>
+
+<section class="page" id="skills">
+  <h2>Skills Assessment Matrix</h2>
+  <p class="muted small">
+    Rate your actual proficiency. The skill list is controlled by skills.js.
+  </p>
+  <div class="card">
+    <b>Proficiency scale</b>
+    <p class="muted small">
+      1 Awareness · 2 Theoretical · 3 Hands-on ·
+      4 Advanced · 5 Expert
+    </p>
+  </div>
+
+  <input class="search" id="search" placeholder="Search skills, domains or technologies...">
+  <select id="domainFilter" style="margin-bottom:14px;width:100%">
+    <option value="">All domains</option>
+  </select>
+  <div id="skillList"></div>
+</section>
+
+<section class="page" id="tools">
+  <h2>EDA Software & Platforms</h2>
+  <div class="card" id="toolList"></div>
+</section>
+
+<section class="page" id="workflow">
+  <h2>Design-to-Mask Workflow</h2>
+  <div id="workflowList"></div>
+</section>
+
+<section class="page" id="career">
+  <h2>Career Development Roadmap</h2>
+  <div class="card">
+    <h3>Phase 1 · Technical mastery</h3>
+    <div class="goal"><input type="checkbox" data-goal="1">End-to-end MDP ownership</div>
+    <div class="goal"><input type="checkbox" data-goal="2">Advanced data fracturing</div>
+    <div class="goal"><input type="checkbox" data-goal="3">Process optimization</div>
+  </div>
+  <div class="card">
+    <h3>Phase 2 · Advanced specialization</h3>
+    <div class="goal"><input type="checkbox" data-goal="4">Curvilinear MDP</div>
+    <div class="goal"><input type="checkbox" data-goal="5">EUV / ILT / MPC</div>
+    <div class="goal"><input type="checkbox" data-goal="6">Advanced lithography</div>
+  </div>
+  <div class="card">
+    <h3>Phase 3 · Technical leadership</h3>
+    <div class="goal"><input type="checkbox" data-goal="7">Automation frameworks</div>
+    <div class="goal"><input type="checkbox" data-goal="8">Technical mentoring</div>
+    <div class="goal"><input type="checkbox" data-goal="9">Cross-functional ownership</div>
+  </div>
+</section>
+
+<section class="page" id="projects">
+  <h2>Engineering Projects & Achievements</h2>
+  <div class="card">
+    <h3>Add a project</h3>
+    <label class="small muted">Project name</label>
+    <input id="pName" placeholder="Project title" style="width:100%">
+    <br><br>
+    <label class="small muted">Technical challenge</label>
+    <textarea id="pProblem" placeholder="What was the challenge?"></textarea>
+    <br><br>
+    <label class="small muted">Tools and methodology</label>
+    <textarea id="pMethod" placeholder="Which tools and methods did you use?"></textarea>
+    <br><br>
+    <label class="small muted">Results and impact</label>
+    <textarea id="pResult" placeholder="What improved?"></textarea>
+    <br><br>
+    <button class="btn primary" id="addProject">Save Project</button>
+  </div>
+  <div id="projectList"></div>
+</section>
+
+<footer>
+  D2M ENGINEERING PORTFOLIO · CONFIGURATION-DRIVEN EDITION
+  <br>Data stored locally in your browser.
+</footer>
+
+</main>
+</div>
+
+<script>
+"use strict";
+
+const config = window.D2M_CONFIG;
+
+if (!config || !Array.isArray(config.domains)) {
+  document.body.innerHTML = "Configuration error. Check skills.js.";
+  throw new Error("D2M_CONFIG missing");
+}
+
+const STORE = "D2M_PORTFOLIO_V2";
+
+function emptyState() {
+  return {ratings:{},tools:{},projects:[],goals:{}};
+}
+
+function loadState() {
+  try {
+    return {...emptyState(),
+      ...JSON.parse(localStorage.getItem(STORE) || "{}")
+    };
+  } catch {
+    return emptyState();
+  }
+}
+
+let state = loadState();
+
+function save() {
+  localStorage.setItem(STORE,JSON.stringify(state));
+  renderOverview();
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function allSkills() {
+  return config.domains.flatMap(d=>
+    d.skills.map(s=>({
+      ...s,
+      domainId:d.id,
+      domain:d.name,
+      key:d.id+"::"+s.id
+    }))
+  );
+}
+
+function navigate(id) {
+  document.querySelectorAll(".page").forEach(p=>
+    p.classList.toggle("active",p.id===id)
+  );
+  document.querySelectorAll(".nav[data-page]").forEach(b=>
+    b.classList.toggle("active",b.dataset.page===id)
+  );
+
+  const names={
+    overview:"Engineering Overview",
+    skills:"Skills Matrix",
+    tools:"EDA Tools",
+    workflow:"MDP Workflow",
+    career:"Career Development",
+    projects:"Projects & Achievements"
+  };
+
+  document.getElementById("title").textContent=names[id]||id;
+}
+
+document.getElementById("navigation").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-page]");
+  if(btn)navigate(btn.dataset.page);
+});
+
+document.getElementById("subtitle").textContent =
+  config.profile.title+" | "+config.profile.experience;
+
+function renderOverview() {
+  const skills=allSkills();
+  const values=skills
+    .map(s=>Number(state.ratings[s.key]||0))
+    .filter(v=>v>0);
+
+  document.getElementById("assessed").textContent =
+    values.length+"/"+skills.length;
+
+  document.getElementById("total").textContent=skills.length;
+
+  document.getElementById("average").textContent =
+    values.length
+      ?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(1)
+      :"0.0";
+
+  document.getElementById("expert").textContent =
+    values.filter(v=>v===5).length;
+
+  document.getElementById("domains").innerHTML =
+    config.domains.map(d=>{
+      const list=d.skills;
+      const rated=list.filter(s=>state.ratings[d.id+"::"+s.id]);
+      const pct=list.length?Math.round(rated.length/list.length*100):0;
+
+      return `
+      <div class="card domain" onclick="navigate('skills');filterDomain('${escapeHTML(d.id)}')">
+        <div class="row">
+          <h3>${escapeHTML(d.name)}</h3>
+          <span class="tag">${rated.length}/${list.length}</span>
+        </div>
+        <p class="small muted">${escapeHTML(d.description||"")}</p>
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <p class="small muted">${pct}% assessed</p>
+      </div>`;
+    }).join("");
+}
+
+function filterDomain(id) {
+  document.getElementById("domainFilter").value=id;
+  renderSkills();
+}
+
+function renderDomainFilter() {
+  document.getElementById("domainFilter").innerHTML =
+    '<option value="">All domains</option>'+
+    config.domains.map(d=>
+      `<option value="${escapeHTML(d.id)}">${escapeHTML(d.name)}</option>`
+    ).join("");
+}
+
+function renderSkills() {
+  const query=document.getElementById("search").value.toLowerCase();
+  const domain=document.getElementById("domainFilter").value;
+
+  const filtered=allSkills().filter(s=>
+    (!domain||s.domainId===domain) &&
+    (s.name+" "+s.domain+" "+s.priority).toLowerCase().includes(query)
+  );
+
+  document.getElementById("skillList").innerHTML =
+    filtered.length ? filtered.map(s=>{
+      const val=state.ratings[s.key]||"";
+      return `
+      <div class="card">
+        <div class="row">
+          <strong>${escapeHTML(s.name)}</strong>
+          <span class="tag">${escapeHTML(s.priority||"Optional")}</span>
+        </div>
+        <p class="small muted">${escapeHTML(s.domain)}</p>
+        <div class="skill-controls">
+          <select onchange="setRating('${escapeHTML(s.key)}',this.value)">
+            <option value="">Not assessed</option>
+            ${[1,2,3,4,5].map(n=>
+              `<option value="${n}" ${val==n?"selected":""}>
+              ${n} - ${["","Awareness","Theoretical","Hands-on","Advanced","Expert"][n]}
+              </option>`
+            ).join("")}
+          </select>
+          <span class="small muted">${val?"Level "+val:"Awaiting assessment"}</span>
+        </div>
+      </div>`;
+    }).join("")
+    :'<div class="card muted">No matching skills found.</div>';
+}
+
+function setRating(key,value) {
+  if(value)state.ratings[key]=Number(value);
+  else delete state.ratings[key];
+  save();
+  renderSkills();
+}
+
+document.getElementById("search").addEventListener("input",renderSkills);
+document.getElementById("domainFilter").addEventListener("change",renderSkills);
+
+function renderTools() {
+  document.getElementById("toolList").innerHTML =
+    (config.tools||[]).map((tool,i)=>{
+      const key="tool_"+tool;
+      const value=state.tools[key]||"";
+      return `
+      <div class="skill">
+        <div class="row">
+          <strong>${escapeHTML(tool)}</strong>
+          <span class="small muted">${value?"Level "+value+"/5":"Not assessed"}</span>
+        </div>
+        <select onchange="setTool('${escapeHTML(key)}',this.value)">
+          <option value="">Not assessed</option>
+          ${[1,2,3,4,5].map(n=>
+            `<option value="${n}" ${value==n?"selected":""}>Level ${n}</option>`
+          ).join("")}
+        </select>
+      </div>`;
+    }).join("");
+}
+
+function setTool(key,value) {
+  if(value)state.tools[key]=Number(value);
+  else delete state.tools[key];
+  save();
+  renderTools();
+}
+
+function renderWorkflow() {
+  document.getElementById("workflowList").innerHTML =
+    (config.workflow||[]).map((w,i)=>`
+      <div class="workflow-step ${i===0?"active":""}"
+           onclick="selectStep(this)">
+        <strong>${String(i+1).padStart(2,"0")} · ${escapeHTML(w.name)}</strong>
+        <div class="detail">${escapeHTML(w.detail)}</div>
+      </div>
+    `).join("");
+}
+
+function selectStep(el) {
+  document.querySelectorAll(".workflow-step").forEach(x=>
+    x.classList.remove("active")
+  );
+  el.classList.add("active");
+}
+
+function renderGoals() {
+  document.querySelectorAll("[data-goal]").forEach(el=>{
+    el.checked=!!state.goals[el.dataset.goal];
+    el.addEventListener("change",()=>{
+      state.goals[el.dataset.goal]=el.checked;
+      save();
+    });
+  });
+}
+
+function renderProjects() {
+  document.getElementById("projectList").innerHTML =
+    state.projects.map((p,i)=>`
+    <div class="card">
+      <div class="row">
+        <strong>${escapeHTML(p.name)}</strong>
+        <button class="btn danger" onclick="deleteProject(${i})">Delete</button>
+      </div>
+      <p class="small"><b>Challenge</b><br>${escapeHTML(p.problem)}</p>
+      <p class="small"><b>Tools / methods</b><br>${escapeHTML(p.method)}</p>
+      <p class="small"><b>Results</b><br>${escapeHTML(p.result)}</p>
+    </div>`).join("") ||
+    '<div class="card muted">No projects added yet.</div>';
+}
+
+document.getElementById("addProject").addEventListener("click",()=>{
+  const name=document.getElementById("pName").value.trim();
+  if(!name){alert("Enter a project name.");return;}
+
+  state.projects.push({
+    name,
+    problem:document.getElementById("pProblem").value,
+    method:document.getElementById("pMethod").value,
+    result:document.getElementById("pResult").value
+  });
+
+  ["pName","pProblem","pMethod","pResult"].forEach(id=>
+    document.getElementById(id).value=""
+  );
+
+  save();
+  renderProjects();
+});
+
+function deleteProject(i) {
+  if(confirm("Delete this project?")) {
+    state.projects.splice(i,1);
+    save();
+    renderProjects();
+  }
+}
+
+function exportData() {
+  const backup={
+    version:2,
+    config:config.profile.title,
+    exported:new Date().toISOString(),
+    state
+  };
+
+  const blob=new Blob(
+    [JSON.stringify(backup,null,2)],
+    {type:"application/json"}
+  );
+
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="D2M_Portfolio_Backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("importFile").addEventListener("change",async e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+
+  try {
+    const backup=JSON.parse(await file.text());
+    const imported=backup.state||backup;
+
+    if(!imported.ratings||!Array.isArray(imported.projects))
+      throw Error("Invalid backup");
+
+    if(!confirm("Import this backup and replace current saved data?"))return;
+
+    state={
+      ...emptyState(),
+      ...imported
+    };
+
+    save();
+    renderAll();
+    alert("Backup imported successfully.");
+  } catch {
+    alert("Invalid D2M backup file.");
+  } finally {
+    e.target.value="";
+  }
+});
+
+function renderAll() {
+  renderOverview();
+  renderDomainFilter();
+  renderSkills();
+  renderTools();
+  renderWorkflow();
+  renderGoals();
+  renderProjects();
+}
+
+renderAll();
+</script>
+</body>
+</html>
